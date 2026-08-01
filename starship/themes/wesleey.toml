@@ -1,9 +1,3 @@
-
-if [[ -f ~/.zshrc.local && -r ~/.zshrc.local ]]; then
-  emulate sh -c '. ~/.zshrc.local'
-fi
-
-
 ##############################
 # ╭─╮ ⋆ ✶ ✧ ✦ 󰫢 󰫣     󰘩 󱕅
 # │┼│      󱑽 ↵ ↪ ↝ ↜ ↩ ↳
