@@ -1,3 +1,21 @@
+-- Shared by the <C-Tab>/<M-Tab>/<Tab> keymap chains below: `require` on an
+-- already-loaded module is cheap, but repeating the same pcall+nil-check in
+-- four places invites drift. `get_copilot_nes` also folds in copilot-lsp's
+-- own "is anything pending" check (vim.b.nes_state) so callers can just test
+-- truthiness instead of re-deriving it.
+local function get_copilot_suggestion()
+  local ok, sug = pcall(require, "copilot.suggestion")
+  return ok and sug or nil
+end
+
+local function get_copilot_nes()
+  if not vim.b.nes_state then
+    return nil
+  end
+  local ok, nes_api = pcall(require, "copilot.nes.api")
+  return ok and nes_api or nil
+end
+
 return {
   {
     "saghen/blink.cmp",
@@ -37,20 +55,87 @@ return {
         -- Confirm only when an entry is actively selected (selection.preselect = false),
         -- otherwise fall through to a literal <CR>. Mirrors the old nvim-cmp behavior.
         ["<CR>"] = { "accept", "fallback" },
+        ["<Esc>"] = { "cancel", "fallback" }, -- close the blink menu (revert preview) and stay in insert; falls through to normal Esc otherwise
+        ["<C-Tab>"] = {
+          -- Escape hatch: dismiss blink's menu, a copilot ghost suggestion, and any
+          -- pending NES edit, then insert a real (expandtab-respecting) tab -- bypasses
+          -- the smart <Tab> chain entirely. Needs a terminal that can distinguish
+          -- Ctrl-Tab from plain Tab (Kitty protocol); degrades to plain <Tab> otherwise.
+          function(cmp)
+            if cmp.is_visible() then
+              cmp.hide()
+            end
+            local sug = get_copilot_suggestion()
+            if sug and sug.is_visible() then
+              sug.dismiss()
+            end
+            local nes_api = get_copilot_nes()
+            if nes_api then
+              nes_api.nes_clear()
+            end
+            return vim.api.nvim_replace_termcodes("<Tab>", true, true, true)
+          end,
+        },
+        ["<M-Tab>"] = {
+          -- 1. Accept a pending NES (Next Edit Suggestion) -- a predicted multi-line
+          --    change/delete elsewhere in the buffer. copilot-lsp only ever registers
+          --    its accept keymap in normal mode (hardcoded), so this is what makes it
+          --    reachable from insert mode too.
+          function()
+            local nes_api = get_copilot_nes()
+            if nes_api then
+              local applied = nes_api.nes_apply_pending_nes()
+              if applied then
+                nes_api.nes_walk_cursor_end_edit()
+              end
+              return applied
+            end
+          end,
+          -- 2. otherwise accept (or request, if none is showing yet) a Copilot ghost
+          --    suggestion -- same as copilot.lua's own accept keymap, reimplemented
+          --    here since that one had to be disabled (ai.lua: suggestion.keymap.accept
+          --    = false) to free up <M-Tab> without a buffer-local mapping shadowing it.
+          --    Only claim "handled" (and force the redraw) when something was actually
+          --    visible to accept -- calling accept() with nothing visible just kicks off
+          --    a request (trigger_on_accept) with no buffer mutation, so it's safe to
+          --    still let the key fall through to "fallback" in that case.
+          function()
+            local sug = get_copilot_suggestion()
+            if not sug then
+              return
+            end
+            if sug.is_visible() then
+              sug.accept()
+              vim.schedule(function()
+                vim.cmd("redraw")
+              end)
+              return true
+            end
+            sug.accept()
+          end,
+          "fallback",
+        },
         ["<Tab>"] = {
-          -- 1. navigate the menu when it is open
+          -- 1. navigate the menu when it is open (both blink and a copilot
+          --    suggestion can be visible at once, but blink wins while it's open)
           function(cmp)
             if cmp.is_visible() then
               return cmp.select_next()
             end
           end,
-          -- 2. Cursor-style: accept a Copilot ghost suggestion with <Tab> when the
-          --    blink menu is closed (copilot.hide_during_completion keeps the two
-          --    from ever showing at once). <M-Space> still accepts as well.
+          -- 2. accept a Copilot ghost suggestion once blink is closed
+          --    (<M-Tab> still accepts directly regardless of blink's state)
           function()
-            local ok, sug = pcall(require, "copilot.suggestion")
-            if ok and sug.is_visible() then
+            local sug = get_copilot_suggestion()
+            if sug and sug.is_visible() then
               sug.accept()
+              -- copilot clears the ghost-text extmark synchronously but defers the
+              -- actual multi-line insert to the next tick (vim.schedule_wrap); forcing
+              -- one redraw after that settles lets everything (treesitter reparse,
+              -- diagnostics, etc.) catch up in a single pass instead of trickling.
+              vim.schedule(function()
+                vim.cmd("redraw")
+              end)
               return true
             end
           end,

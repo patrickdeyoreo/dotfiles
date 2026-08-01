@@ -10,7 +10,7 @@ local defaults = {
     backspace = "indent,eol,start",
     belloff = "all",
     clipboard = (vim.env.SSH_TTY == nil or vim.fn.has("nvim-0.10") == 1) and "unnamedplus" or "", -- Use OSC52 over SSH on nvim-0.10+, otherwise system clipboard
-    cmdheight = vim.g.vscode and 0 or 1,
+    cmdheight = vim.g.vscode and 2 or 0, -- vscode-neovim shows its output panel once a message exceeds this many lines
     complete = ".,w,b,u,t,i",
     completeopt = "fuzzy,noselect,menuone,popup",
     conceallevel = 2, -- Hide * markup for bold and italic

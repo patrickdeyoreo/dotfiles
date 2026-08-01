@@ -18,14 +18,14 @@ return {
         },
         add_messages = {
           display_count = true,
+          show_multiple_glyphs = false, -- One icon per distinct severity on the line, not one per diagnostic
         },
         -- Only show source if multiple sources exist for the same diagnostic
         show_source = { enabled = true, if_many = true },
         -- Throttle update frequency in milliseconds to improve performance
         -- Higher values reduce CPU usage but may feel less responsive
         -- Set to 0 for immediate updates (may cause lag on slow systems)
-        --throttle = 20,
-        throttle = 5,
+        throttle = 20,
       },
       signs = {
         left = " ",
@@ -33,8 +33,8 @@ return {
         diag = "󱨧", --  󱨧 ✦ ✧ ✱ ⛤ ⛧ ✹ ✸ ✶   󰎂 󰎃
         arrow = "", --  󰩔 󱖚 󰬩 󰧙 󰳞     󰧀
         up_arrow = "󰩕", --  ↑ 󰩕 󱖗 󰧇      󰛃 󰜸 
-        vertical = " 󰇝", --   󰇝 󱋱 󰇙 󰟄 󰮎  󰮾  󰝀 󰜹  
-        vertical_end = " ",
+        vertical = " │", --  │ ┆ ┊ ╎ 󰇙
+        vertical_end = " ╰", --  ╰ └ ┗ ╚
       },
       blend = {
         factor = 0.28,
@@ -92,11 +92,40 @@ return {
         yaml = { "yamllint" },
         zsh = { "zsh" },
       }
-      vim.api.nvim_create_autocmd({ "BufWritePost", "BufReadPost", "InsertLeave" }, {
-        group = vim.api.nvim_create_augroup("nvim-lint", { clear = true }),
+      -- tflint and golangcilint re-scan the whole module/package on every invocation
+      -- (multi-second, CPU-bound), unlike the other linters here which are fast,
+      -- single-file tools. Running them on InsertLeave respawns that scan every time
+      -- you leave insert mode, which is what makes editing large codebases feel slow.
+      -- Keep them on save/read only; other filetypes still get the responsive
+      -- InsertLeave lint.
+      local slow_linters = { tflint = true, golangcilint = true }
+
+      local function fast_linters_for(ft)
+        local names = {}
+        for _, name in ipairs(lint.linters_by_ft[ft] or {}) do
+          if not slow_linters[name] then
+            table.insert(names, name)
+          end
+        end
+        return names
+      end
+
+      local group = vim.api.nvim_create_augroup("nvim-lint", { clear = true })
+
+      vim.api.nvim_create_autocmd({ "BufWritePost", "BufReadPost" }, {
+        group = group,
         callback = function()
           if vim.bo.buftype == "" then
             lint.try_lint()
+          end
+        end,
+      })
+
+      vim.api.nvim_create_autocmd("InsertLeave", {
+        group = group,
+        callback = function()
+          if vim.bo.buftype == "" then
+            lint.try_lint(fast_linters_for(vim.bo.filetype))
           end
         end,
       })

@@ -1,3 +1,9 @@
+
+if [[ -f ~/.zshrc.local && -r ~/.zshrc.local ]]; then
+  emulate sh -c '. ~/.zshrc.local'
+fi
+
+
 ##############################
 # ╭─╮ ⋆ ✶ ✧ ✦ 󰫢 󰫣     󰘩 󱕅
 # │┼│      󱑽 ↵ ↪ ↝ ↜ ↩ ↳
@@ -130,7 +136,7 @@ symbol = ''
 
 [aws]
 # [$symbol](bold fg:foreground)
-format = '[$symbol](bold fg:foreground)[($profile@)aws(:$region)]($style)'
+format = '[$symbol](bold fg:foreground)[aws(:$region)(:$profile)]($style)'
 style = 'italic fg:magenta'
 symbol = '󰅣 '
 # region_aliases = {

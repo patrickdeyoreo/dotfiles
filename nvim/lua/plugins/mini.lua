@@ -13,6 +13,11 @@ return {
     'nvim-mini/mini.comment',
     version = '*',
     cond = true,
+    keys = {
+      -- 'o' mode covers the <leader>c textobject (e.g. d<leader>c); 'n'/'x' cover toggle/comment_visual
+      { "<leader>c", mode = { "n", "x", "o" }, desc = "Comment (toggle / textobject)" },
+      { "<leader>cc", mode = "n", desc = "Toggle comment line" },
+    },
     opts = {
       -- Options which control module behavior
       options = {

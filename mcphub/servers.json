@@ -17,6 +17,7 @@
       "headers": {
         "CONTEXT7_API_KEY": "${CONTEXT7_API_KEY}"
       },
+      "type": "http",
       "url": "https://mcp.context7.com/mcp"
     },
     "Homebrew": {
@@ -81,16 +82,14 @@
       "env": {}
     },
     "github": {
-      "args": [
-        "stdio",
-        "--toolsets",
-        "default",
-        "--read-only"
-      ],
-      "command": "github-mcp-server",
       "env": {
         "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PERSONAL_ACCESS_TOKEN}"
-      }
+      },
+      "headers": {
+        "Authorization": "Bearer ${GITHUB_PERSONAL_ACCESS_TOKEN}"
+      },
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/"
     },
     "lambda": {
       "args": [

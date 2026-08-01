@@ -88,10 +88,14 @@ The `blink.cmp` setup is the most involved single file. It defines:
 - **Tiered sources** — priority via `score_offset`: `lazydev`, then `avante`, then
   LSP, then `ecolog` / `path` / `snippets`, with `buffer` last. Git/GitHub
   completions (`blink-cmp-git`) load only in commit-style buffers.
-- **Custom `<Tab>` logic** — Tab navigates the menu when it's open, accepts a Copilot
-  ghost suggestion when it's closed, jumps forward in an active snippet, falls
-  through to a literal Tab on leading whitespace, and otherwise triggers completion.
-  `<CR>` accepts only when an entry is actively selected.
+- **Custom `<Tab>` logic**, arbitrating with Copilot's ghost text and NES (Next Edit
+  Suggestions): navigates the menu when open, else accepts a Copilot suggestion, else
+  jumps forward in an active snippet, else triggers completion (falling through to a
+  literal Tab on leading whitespace). `<M-Tab>` accepts a Copilot suggestion or a
+  pending NES edit directly, regardless of blink's state. `<C-Tab>` dismisses
+  everything (blink, the suggestion, any pending NES) and inserts a literal tab.
+  `<Esc>` closes blink's menu without leaving insert mode. `<CR>` accepts only when
+  an entry is actively selected.
 - **Command-line completion** with source sets chosen by `getcmdtype()` —
   cmdline + path for `:`, buffer words for `/` and `?`.
 - Semantic auto-brackets on accept; entry icons come from `mini.icons`.

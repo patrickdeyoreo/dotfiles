@@ -215,12 +215,30 @@ return {
       },
       suggestion = {
         enabled = true,
-        auto_refresh = true,
+        -- The real config key is `auto_trigger` (see copilot.lua's SuggestionConfig);
+        -- `auto_refresh` doesn't exist and was silently ignored, so suggestions never
+        -- showed up on their own -- only after `next`/`prev`/`accept` forced a first
+        -- request (trigger_on_accept). That's why multi-line ghost text felt broken:
+        -- by the time a slower multi-line completion came back, <Tab> had already
+        -- fallen through to blink instead of accepting it.
+        auto_trigger = true,
+        -- Doesn't gate anything against blink.cmp specifically -- blink renders its own
+        -- floating window rather than the native popup-menu, so `vim.fn.pumvisible()`
+        -- (what get_current_suggestion checks) never sees it; both blink's menu and
+        -- copilot's ghost text already show at once regardless of this setting. But it
+        -- ALSO gates a second path (on_text_changed_p, on the TextChangedP autocmd):
+        -- when false, Copilot auto-requests a new suggestion on every keystroke even
+        -- while a NATIVE (non-blink) completion popup is open (e.g. omni-completion).
+        -- Leave this true to keep that narrower, safer default -- it costs nothing for
+        -- the blink+copilot coexistence this config actually wants.
         hide_during_completion = true,
         debounce = 150,
         trigger_on_accept = true,
         keymap = {
-          accept = "<M-Space>",
+          -- Reimplemented on blink's <M-Tab> in completion.lua instead (alongside NES
+          -- accept) -- this is buffer-local and would otherwise always shadow that
+          -- global mapping regardless of load order.
+          accept = false,
           accept_line = "<M-Bslash>",
           accept_word = "<C-Right>",
           next = "<M-]>",
@@ -230,6 +248,16 @@ return {
       },
       copilot_node_command = "node",
       workspace_folders = {},
+      -- copilot-language-server tries to store its OAuth token via macOS Keychain
+      -- (through @github/keytar, service "copilot-language-server") on every
+      -- session start, prompting for keychain access each time. This setting
+      -- (an officially supported override, not a hack) skips that and falls back
+      -- to the server's own plaintext-file token storage instead.
+      server_opts_overrides = {
+        cmd_env = {
+          GITHUB_COPILOT_AUTH_TOKEN_ENCRYPTION = "false",
+        },
+      },
     },
   },
   {

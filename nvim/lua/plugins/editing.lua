@@ -20,15 +20,14 @@ return {
     opts = {
       use_default_keymaps = false,
     },
+    keys = {
+      { "<Space>t", function() require('treesj').toggle() end, desc = "Toggle split/join (treesj)" },
+      { "<Space>T", function() require('treesj').toggle({ split = { recursive = true } }) end, desc = "Toggle split/join recursive (treesj)" },
+      { "<Space>s", function() require('treesj').split() end, desc = "Split (treesj)" },
+      { "<Space>j", function() require('treesj').join() end, desc = "Join (treesj)" },
+    },
     config = function (_, opts)
-      local treesj = require('treesj')
-      treesj.setup(opts)
-      vim.keymap.set('n', '<Space>t', treesj.toggle) -- default preset
-      vim.keymap.set('n', '<Space>T', function() -- default preset with 'recursive = true'
-        treesj.toggle({ split = { recursive = true } })
-      end)
-      vim.keymap.set('n', '<Space>s', treesj.split) -- default preset
-      vim.keymap.set('n', '<Space>j', treesj.join) -- default preset
+      require('treesj').setup(opts)
     end
   },
   {

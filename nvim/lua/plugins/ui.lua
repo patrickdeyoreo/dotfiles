@@ -1,28 +1,20 @@
-return {
-  {
-    "nvim-lualine/lualine.nvim",
-    cond = vim.g.vscode == nil,
-    dependencies = {
-      "echasnovski/mini.icons",
-      "folke/noice.nvim",
-    },
-    opts = function()
+local function lualine_opts()
       local utils = require("core.utils")
       -- Highlight group names, resolved at render time so the colors track
       -- the active colorscheme across the F11/F12/F24 rotation.
+      -- copilot.lua's statusNotification.status type is ''|'Normal'|'InProgress'|'Warning'
+      -- (copilot/status/init.lua) -- 'Error' is never actually produced, verified directly.
       local copilot_colors = {
         [""] = "Comment",
         ["Normal"] = "Comment",
         ["InProgress"] = "DiagnosticInfo",
         ["Warning"] = "DiagnosticWarn",
-        ["Error"] = "DiagnosticError",
       }
       local filetype_map = {
         lazy = { name = "lazy.nvim", icon = "󰒲 " },
         mason = { name = "mason", icon = "󱌣 " },
         snacks_picker_input = { name = "picker", icon = "󰩕 " },
         ["Avante"] = { name = "avante", icon = " " },
-        -- ["copilot-chat"] = { name = "copilot", icon = " " },
       }
       return {
         options = {
@@ -218,11 +210,40 @@ return {
           },
         },
       }
+end
+
+return {
+  {
+    "nvim-lualine/lualine.nvim",
+    cond = vim.g.vscode == nil,
+    event = "VeryLazy",
+    dependencies = {
+      "nvim-mini/mini.icons", -- config lives in mini.lua; this just orders load-before-lualine
+      "folke/noice.nvim",
+    },
+    opts = lualine_opts,
+    config = function(_, opts)
+      require("lualine").setup(opts)
+      -- ecolog.nvim lazy-loads via `keys` (env.lua), so it's virtually never
+      -- loaded yet when lualine_opts() first runs -- its statusline component
+      -- would otherwise permanently bake in as a no-op. Rebuild once ecolog
+      -- actually loads so the real component gets picked up.
+      vim.api.nvim_create_autocmd("User", {
+        pattern = "LazyLoad",
+        callback = function(event)
+          if event.data == "ecolog.nvim" then
+            require("lualine").setup(lualine_opts())
+          end
+        end,
+      })
     end,
   },
   {
     "akinsho/bufferline.nvim",
     cond = vim.g.vscode == nil,
+    -- Safe to defer: always_show_bufferline=false already means it draws nothing
+    -- until a 2nd buffer exists, regardless of when it loads.
+    event = "VeryLazy",
     version = false,
     dependencies = {
       "nvim-tree/nvim-web-devicons",
@@ -255,6 +276,14 @@ return {
   {
     "lukas-reineke/indent-blankline.nvim",
     cond = vim.g.vscode == nil,
+    -- NOT "VeryLazy": ibl's own catch-up for already-open buffers is a VimEnter
+    -- autocmd (ibl/autocmds.lua), and VeryLazy fires *after* VimEnter -- it would
+    -- miss that and guides wouldn't show on the first buffer until some other
+    -- event (CursorMoved etc.) happens to fire. BufReadPost/BufNewFile get
+    -- remapped by lazy.nvim to the earlier BufReadPre internally (see
+    -- lazy/core/handler/event.lua), so ibl loads in time to catch its own
+    -- VimEnter listener before VimEnter actually fires.
+    event = { "BufReadPost", "BufNewFile" },
     dependencies = {
       "HiPhish/rainbow-delimiters.nvim",
     },
@@ -318,6 +347,11 @@ return {
   {
     "HiPhish/rainbow-delimiters.nvim",
     cond = vim.g.vscode == nil,
+    -- Same reasoning as indent-blankline: it attaches via a `FileType` autocmd in
+    -- its own plugin/rainbow-delimiters.lua, no VimEnter-based catch-up. FileType
+    -- gets remapped to the even-earlier BufReadPost internally by lazy.nvim, so
+    -- this loads in time to attach to the first buffer's FileType event.
+    event = { "BufReadPost", "BufNewFile" },
     opts = {
       strategy = {
         [""] = "rainbow-delimiters.strategy.global",
@@ -492,6 +526,12 @@ return {
   {
     "kevinhwang91/nvim-ufo",
     cond = vim.g.vscode == nil,
+    -- Same reasoning as indent-blankline/rainbow-delimiters: ufo's bufmanager only
+    -- attaches via a `BufWinEnter` listener registered at setup time, with no
+    -- explicit backfill over already-open buffers/windows. BufReadPost/BufNewFile
+    -- get remapped to the earlier BufReadPre by lazy.nvim, which reliably fires
+    -- before BufWinEnter for the same buffer.
+    event = { "BufReadPost", "BufNewFile" },
     dependencies = {
       "kevinhwang91/promise-async",
     },
