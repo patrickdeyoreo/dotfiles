@@ -27,20 +27,23 @@
 	ui = auto
 
 [color "decorate"]
-	branch = green
-	remoteBranch = red
-	stash = blue
+	branch = blue
+	remoteBranch = magenta
+	stash = red
 	tag = yellow
 
 [color "diff"]
-	meta = white bold
-	frag = cyan bold
-	old = red bold
-	new = green bold
+	meta = cyan
+	frag = magenta
+	old = red
+	new = green
 
 [alias]
-	# Fix lines like "git git COMMAND"
-	git = !git
+	# Fix lines like `git git ...`
+	git = "!git"
+
+	# Run lazygit
+	lazy = "!lazygit"
 
 	a = add
 	aa = add -A
@@ -48,23 +51,27 @@
 	c = commit
 	cm = commit -m
 
+	r = remote
+	rv = remote -v
+
 	b = branch
 	ba = branch -a
+	bd = branch -d
 
 	co = checkout
-	cb = checkout -b
+	cob = checkout -b
 
 	m = merge
 	ma = merge --abort
 	mc = merge --continue
 
 	st = status
-	ss = status --short --branch
+	sts = status --short --branch
 
 	sw = switch
 	swc = switch --create
 
-	sm = submodule
+	sub = submodule
 
 	# Commit history
 	l = log --all --graph --decorate --oneline
@@ -82,15 +89,12 @@
 	# Pull from remote and push from local
 	sync = "!__git_sync() { git pull && git push; }; __git_sync"
 
-	# Retrieve a gitignore template from gitignore.io
-	ignore = "!__git_ignore() { if test \"$#\" -gt 0; then curl -fsSL \"https://www.toptal.com/developers/gitignore/api/$*\"; else >&2 echo \"git ignore: error: expected a list of project types for which to retrieve a template - got none\"; >&2 echo \"usage: git ignore TYPE [TYPE ...]\"; exit 2; fi; }; IFS=, __git_ignore"
-
 	# Checkout and pull
 	dev = "!__git_dev() { git checkout dev && git pull --prune; }; __git_dev"
 	develop = "!__git_develop() { git checkout develop && git pull --prune; }; __git_develop"
-
-	main = "!__git_main() { git checkout main && git pull --prune; }; __git_main"
+	uat = "!__git_uat() { git checkout uat && git pull --prune; }; __git_uat"
+	staging = "!__git_staging() { git checkout staging && git pull --prune; }; __git_staging"
 	master = "!__git_master() { git checkout master && git pull --prune; }; __git_master"
-	prod = "!__git_prod() { git checkout prod && git pull --prune; }; __git_prod"
+	main = "!__git_main() { git checkout main && git pull --prune; }; __git_main"
 
 # vi:ft=gitconfig:ts=8:sw=8:noet
