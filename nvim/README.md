@@ -91,8 +91,9 @@ The `blink.cmp` setup is the most involved single file. It defines:
 - **Custom `<Tab>` logic**, arbitrating with Copilot's ghost text and NES (Next Edit
   Suggestions): navigates the menu when open, else accepts a Copilot suggestion, else
   jumps forward in an active snippet, else triggers completion (falling through to a
-  literal Tab on leading whitespace). `<M-Tab>` accepts a Copilot suggestion or a
-  pending NES edit directly, regardless of blink's state. `<C-Tab>` dismisses
+  literal Tab on leading whitespace). `<S-Tab>` accepts a pending NES edit directly
+  when the menu is closed (standard select-prev cycling when it's open) -- kept off
+  `<M-Tab>` since most window managers grab Alt-Tab first. `<C-Tab>` dismisses
   everything (blink, the suggestion, any pending NES) and inserts a literal tab.
   `<Esc>` closes blink's menu without leaving insert mode. `<CR>` accepts only when
   an entry is actively selected.

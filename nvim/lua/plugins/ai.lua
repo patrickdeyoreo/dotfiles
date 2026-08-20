@@ -235,9 +235,9 @@ return {
         debounce = 150,
         trigger_on_accept = true,
         keymap = {
-          -- Reimplemented on blink's <M-Tab> in completion.lua instead (alongside NES
-          -- accept) -- this is buffer-local and would otherwise always shadow that
-          -- global mapping regardless of load order.
+          -- Reimplemented on blink's <Tab> chain in completion.lua instead -- this
+          -- is buffer-local and would otherwise always shadow that global mapping
+          -- regardless of load order.
           accept = false,
           accept_line = "<M-Bslash>",
           accept_word = "<C-Right>",

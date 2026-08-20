@@ -1,4 +1,4 @@
--- Shared by the <C-Tab>/<M-Tab>/<Tab> keymap chains below: `require` on an
+-- Shared by the <C-Tab>/<S-Tab>/<Tab> keymap chains below: `require` on an
 -- already-loaded module is cheap, but repeating the same pcall+nil-check in
 -- four places invites drift. `get_copilot_nes` also folds in copilot-lsp's
 -- own "is anything pending" check (vim.b.nes_state) so callers can just test
@@ -76,45 +76,6 @@ return {
             return vim.api.nvim_replace_termcodes("<Tab>", true, true, true)
           end,
         },
-        ["<M-Tab>"] = {
-          -- 1. Accept a pending NES (Next Edit Suggestion) -- a predicted multi-line
-          --    change/delete elsewhere in the buffer. copilot-lsp only ever registers
-          --    its accept keymap in normal mode (hardcoded), so this is what makes it
-          --    reachable from insert mode too.
-          function()
-            local nes_api = get_copilot_nes()
-            if nes_api then
-              local applied = nes_api.nes_apply_pending_nes()
-              if applied then
-                nes_api.nes_walk_cursor_end_edit()
-              end
-              return applied
-            end
-          end,
-          -- 2. otherwise accept (or request, if none is showing yet) a Copilot ghost
-          --    suggestion -- same as copilot.lua's own accept keymap, reimplemented
-          --    here since that one had to be disabled (ai.lua: suggestion.keymap.accept
-          --    = false) to free up <M-Tab> without a buffer-local mapping shadowing it.
-          --    Only claim "handled" (and force the redraw) when something was actually
-          --    visible to accept -- calling accept() with nothing visible just kicks off
-          --    a request (trigger_on_accept) with no buffer mutation, so it's safe to
-          --    still let the key fall through to "fallback" in that case.
-          function()
-            local sug = get_copilot_suggestion()
-            if not sug then
-              return
-            end
-            if sug.is_visible() then
-              sug.accept()
-              vim.schedule(function()
-                vim.cmd("redraw")
-              end)
-              return true
-            end
-            sug.accept()
-          end,
-          "fallback",
-        },
         ["<Tab>"] = {
           -- 1. navigate the menu when it is open (both blink and a copilot
           --    suggestion can be visible at once, but blink wins while it's open)
@@ -124,7 +85,6 @@ return {
             end
           end,
           -- 2. accept a Copilot ghost suggestion once blink is closed
-          --    (<M-Tab> still accepts directly regardless of blink's state)
           function()
             local sug = get_copilot_suggestion()
             if sug and sug.is_visible() then
@@ -153,7 +113,30 @@ return {
           end,
           "fallback",
         },
-        ["<S-Tab>"] = { "select_prev", "fallback" },
+        ["<S-Tab>"] = {
+          -- Accept a pending NES (Next Edit Suggestion) -- a predicted multi-line
+          -- change/delete elsewhere in the buffer -- when blink's menu is closed
+          -- (standard select_prev cycling still applies when it's open). copilot-lsp
+          -- only ever registers its accept keymap in normal mode (hardcoded), so this
+          -- is what makes it reachable from insert mode. Lives here rather than
+          -- <M-Tab>: most window managers grab Alt-Tab before it reaches the terminal.
+          function(cmp)
+            if cmp.is_visible() then
+              return
+            end
+            local nes_api = get_copilot_nes()
+            if not nes_api then
+              return
+            end
+            local applied = nes_api.nes_apply_pending_nes()
+            if applied then
+              nes_api.nes_walk_cursor_end_edit()
+            end
+            return applied
+          end,
+          "select_prev",
+          "fallback",
+        },
       },
       completion = {
         keyword = { range = "full" },
