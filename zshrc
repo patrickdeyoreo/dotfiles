@@ -302,6 +302,12 @@ if test -v ZSH; then
   #
   bindkey '^[z' _zoxide_zi_widget
 
+  # fzf history search: oh-my-zsh's lib/key-bindings.zsh unconditionally
+  # rebinds ^R to the builtin incremental search, clobbering the fzf
+  # binding set up earlier when fzf.zsh was sourced -- restore it here.
+  #
+  bindkey '^R' fzf-history-widget
+
   # zsh-autocomplete: longest common substring matching
   # zstyle ':completion:*:*' matcher-list 'm:{[:lower:]-}={[:upper:]_}' '+r:|[.]=**'
 
